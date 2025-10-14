@@ -1,0 +1,11 @@
+{
+  "name": "com.raxy.animation",
+  "version": "1.0.0",
+  "displayName": "Animancer Wrapper",
+  "description": "Make sure you have Animancer installed in your project",
+  "dependencies": {
+    "com.[company-name].some-package": "1.0.0",
+    "com.[company-name].other-package": "2.0.0"
+  }
+}
+

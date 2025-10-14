@@ -1,0 +1,16 @@
+{
+    "name": "RAXY.Utility.Gameplay",
+    "rootNamespace": "RAXY.Utility.Gameplay",
+    "references": [
+        "GUID:736f23a4f42e49d429767945c0c5b49e"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
