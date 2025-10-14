@@ -1,6 +1,9 @@
 {
   "name": "com.raxy.utility",
   "version": "1.0.0",
-  "displayName": "RAXY Utility"
+  "displayName": "RAXY Utility",
+  "author": {
+    "name": "RobyRAX"
+  }
 }
 
