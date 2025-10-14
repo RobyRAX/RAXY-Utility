@@ -24,10 +24,24 @@ namespace RAXY.Utility
         [Button]
         private void SwitchToLocal()
         {
+            if (!File.Exists(ManifestPath))
+            {
+                Debug.LogError($"Manifest not found at {ManifestPath}");
+                return;
+            }
+
             foreach (var pkg in packages)
             {
-                SwitchManifest(pkg.packageKey, "file:" + pkg.localPath, refresh: false);
+                if (!Directory.Exists(pkg.absolutePath))
+                {
+                    Debug.LogWarning($"Local package path does not exist: {pkg.absolutePath}");
+                    continue;
+                }
+
+                string newValue = "file:" + pkg.absolutePath.Replace("\\", "/");
+                SwitchManifest(pkg.packageKey, newValue, refresh: false);
             }
+
 #if UNITY_EDITOR
             AssetDatabase.Refresh();
 #endif
@@ -83,39 +97,41 @@ namespace RAXY.Utility
             }
         }
 
-        [Button("Test Manifest Format")]
-        private void TestManifest()
+        [TitleGroup("Test")]
+        [Button("Test Switch to Local")]
+        private void Test_SwitchToLocal()
         {
-            if (!File.Exists(ManifestPath))
+            if (packages == null || packages.Count == 0)
             {
-                Debug.LogError($"Manifest not found at {ManifestPath}");
+                Debug.LogWarning("No packages defined to switch.");
                 return;
             }
 
-            string json = File.ReadAllText(ManifestPath);
-
-            JObject jObject;
-            try
+            Debug.Log("=== Test Switch to Local ===");
+            foreach (var pkg in packages)
             {
-                jObject = JObject.Parse(json);
+                string newValue = "file:" + pkg.absolutePath.Replace("\\", "/");
+                bool exists = Directory.Exists(pkg.absolutePath);
+                Debug.Log($"{pkg.packageKey} -> {newValue} (Exists: {exists})");
             }
-            catch (System.Exception ex)
+        }
+
+        [TitleGroup("Test")]
+        [Button("Test Switch to Remote")]
+        private void Test_SwitchToRemote()
+        {
+            if (packages == null || packages.Count == 0)
             {
-                Debug.LogError($"Failed to parse manifest.json: {ex.Message}");
+                Debug.LogWarning("No packages defined to switch.");
                 return;
             }
 
-            var dependencies = jObject["dependencies"] as JObject;
-            if (dependencies == null)
+            Debug.Log("=== Test Switch to Remote ===");
+            foreach (var pkg in packages)
             {
-                Debug.LogWarning("No 'dependencies' field found in manifest!");
-                return;
-            }
-
-            Debug.Log("Manifest dependencies:");
-            foreach (var kvp in dependencies)
-            {
-                Debug.Log($"{kvp.Key} : {kvp.Value}");
+                string newValue = pkg.remoteVersion;
+                bool valid = !string.IsNullOrEmpty(newValue);
+                Debug.Log($"{pkg.packageKey} -> {newValue} (Valid: {valid})");
             }
         }
     }
@@ -124,8 +140,7 @@ namespace RAXY.Utility
     public class PackageEntry
     {
         public string packageKey;
-        [FolderPath]
-        public string localPath;
+        public string absolutePath;
         public string remoteVersion;       
     }
 }
