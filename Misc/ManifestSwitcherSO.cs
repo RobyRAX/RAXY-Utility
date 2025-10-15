@@ -1,16 +1,16 @@
+#if UNITY_EDITOR
+
 using System.IO;
 using UnityEngine;
 using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
 using Sirenix.OdinInspector;
 
-#if UNITY_EDITOR
 using UnityEditor;
-#endif
 
 namespace RAXY.Utility
 {
-    [CreateAssetMenu(fileName = "Manifest Switcher", menuName = "RAXY/Manifest Switcher")]
+    [CreateAssetMenu(fileName = "Manifest Switcher", menuName = "RAXY/Editor/Manifest Switcher")]
     public class ManifestSwitcherSO : ScriptableObject
     {
         [SerializeField]
@@ -42,9 +42,7 @@ namespace RAXY.Utility
                 SwitchManifest(pkg.packageKey, newValue, refresh: false);
             }
 
-#if UNITY_EDITOR
             AssetDatabase.Refresh();
-#endif
         }
 
         [HorizontalGroup("Packages to Switch/Button")]
@@ -55,9 +53,7 @@ namespace RAXY.Utility
             {
                 SwitchManifest(pkg.packageKey, pkg.remoteVersion, refresh: false);
             }
-#if UNITY_EDITOR
             AssetDatabase.Refresh();
-#endif
         }
 
         /// <summary>
@@ -86,10 +82,8 @@ namespace RAXY.Utility
                 dependencies[packageKey] = newValue;
                 File.WriteAllText(ManifestPath, jObject.ToString());
                 Debug.Log($"Switched {packageKey} to {newValue}");
-#if UNITY_EDITOR
                 if (refresh)
                     AssetDatabase.Refresh();
-#endif
             }
             else
             {
@@ -144,3 +138,4 @@ namespace RAXY.Utility
         public string remoteVersion;       
     }
 }
+#endif
