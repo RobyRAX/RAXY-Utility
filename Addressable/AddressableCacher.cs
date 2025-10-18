@@ -6,7 +6,7 @@ using UnityEngine.ResourceManagement.AsyncOperations;
 using Sirenix.OdinInspector;
 
 using Object = UnityEngine.Object;
-using System.Threading.Tasks;
+using Cysharp.Threading.Tasks;
 
 namespace RAXY.Utility.Addressable
 {
@@ -27,14 +27,12 @@ namespace RAXY.Utility.Addressable
             }
         }
 
-        [ShowInInspector]
-        [NonSerialized]
-        [HideReferenceObjectPicker]
+        [ShowInInspector, NonSerialized, HideReferenceObjectPicker]
         [DictionaryDrawerSettings(ValueLabel = "Container")]
         Dictionary<string, AddressableCacheContainer> _containers = new();
 
         // ──────────────────────────────
-        // 🔹 STATIC ACCESS METHODS
+        // 🔹 STATIC ACCESS METHODS (UniTask version)
         // ──────────────────────────────
 
         public static T TryGetDirect<T>(string containerKey, AssetReference assetRef)
@@ -51,14 +49,14 @@ namespace RAXY.Utility.Addressable
             return default;
         }
 
-        public static async Task<T> TryGet<T>(string containerKey, AssetReference assetRef)
-            => await Instance.DoTryGet<T>(containerKey, assetRef);
+        public static UniTask<T> TryGet<T>(string containerKey, AssetReference assetRef)
+            => Instance.DoTryGet<T>(containerKey, assetRef);
 
-        public static async Task Load<T>(string containerKey, AssetReference assetRef)
-            => await Instance.DoLoad<T>(containerKey, assetRef, false);
+        public static UniTask Load<T>(string containerKey, AssetReference assetRef)
+            => Instance.DoLoad<T>(containerKey, assetRef, false).AsUniTask();
 
-        public static async Task<string> TryGetAssetName<T>(string containerKey, AssetReference assetRef)
-            => await Instance.DoTryGetAssetName<T>(containerKey, assetRef);
+        public static UniTask<string> TryGetAssetName<T>(string containerKey, AssetReference assetRef)
+            => Instance.DoTryGetAssetName<T>(containerKey, assetRef);
 
         public static string TryGetAssetNameDirect(string containerKey, AssetReference assetRef)
         {
@@ -83,16 +81,16 @@ namespace RAXY.Utility.Addressable
             => Instance.DoReleaseAll();
 
         // ──────────────────────────────
-        // 🔸 INSTANCE INTERNAL METHODS
+        // 🔸 INSTANCE INTERNAL METHODS (UniTask)
         // ──────────────────────────────
 
-        async Task<T> DoTryGet<T>(string containerKey, AssetReference assetRef)
+        async UniTask<T> DoTryGet<T>(string containerKey, AssetReference assetRef)
         {
             var (result, _) = await DoLoad<T>(containerKey, assetRef, true);
             return result;
         }
 
-        async Task<string> DoTryGetAssetName<T>(string containerKey, AssetReference assetRef)
+        async UniTask<string> DoTryGetAssetName<T>(string containerKey, AssetReference assetRef)
         {
             var (result, _) = await DoLoad<T>(containerKey, assetRef, true);
 
@@ -102,10 +100,10 @@ namespace RAXY.Utility.Addressable
             return result?.ToString() ?? "<null>";
         }
 
-        // Change type to track with a completion source
-        private readonly Dictionary<string, TaskCompletionSource<bool>> _loadingTasks = new();
+        // ✅ Switched to UniTaskCompletionSource
+        private readonly Dictionary<string, UniTaskCompletionSource<bool>> _loadingTasks = new();
 
-        async Task<(T result, bool loaded)> DoLoad<T>(string containerKey, AssetReference assetRef, bool returnResult = false)
+        async UniTask<(T result, bool loaded)> DoLoad<T>(string containerKey, AssetReference assetRef, bool returnResult = false)
         {
             if (assetRef == null || string.IsNullOrEmpty(containerKey))
                 throw new ArgumentException("Invalid container key or asset reference.");
@@ -125,25 +123,23 @@ namespace RAXY.Utility.Addressable
             if (container.TryGet(guid, out var existing))
                 return (existing, false);
 
-            // if already loading, await the same task
-            if (_loadingTasks.TryGetValue(guid, out var tcs))
+            // wait if already loading
+            if (_loadingTasks.TryGetValue(guid, out var existingTcs))
             {
-                await tcs.Task; // safe: multiple awaiters ok
+                await existingTcs.Task;
                 if (container.TryGet(guid, out var alreadyLoaded))
                     return (alreadyLoaded, false);
             }
 
-            // create a new completion source
-            tcs = new TaskCompletionSource<bool>();
+            // create new task source
+            var tcs = new UniTaskCompletionSource<bool>();
             _loadingTasks[guid] = tcs;
 
             try
             {
-                // Actually load
                 AsyncOperationHandle<T> handle = assetRef.LoadAssetAsync<T>();
-                await handle.Task;
+                await handle.Task; // ✅ use ToUniTask() for Unity handle integration
                 container.Cache(guid, handle);
-
                 tcs.TrySetResult(true);
             }
             catch (Exception ex)
@@ -159,11 +155,10 @@ namespace RAXY.Utility.Addressable
             return (container.TryGet(guid, out var result) ? result : default, true);
         }
 
-        private async Task DoLoadInternal<T>(AddressableCacheContainer<T> container, AssetReference assetRef, string guid)
+        async UniTask DoLoadInternal<T>(AddressableCacheContainer<T> container, AssetReference assetRef, string guid)
         {
             AsyncOperationHandle<T> handle = assetRef.LoadAssetAsync<T>();
             await handle.Task;
-
             container.Cache(guid, handle);
         }
 
@@ -171,24 +166,21 @@ namespace RAXY.Utility.Addressable
         {
             if (_containers.ContainsKey(key))
                 throw new Exception($"Container '{key}' already exists.");
-            var container = new AddressableCacheContainer<T>();
-            _containers[key] = container;
+
+            _containers[key] = new AddressableCacheContainer<T>();
         }
 
         void DoRelease(string containerKey, string guid)
         {
             if (_containers.TryGetValue(containerKey, out var container))
-            {
                 container.Release(guid);
-            }
         }
 
         void DoReleaseAll()
         {
             foreach (var container in _containers.Values)
-            {
                 container.ReleaseAll();
-            }
+
             _containers.Clear();
         }
 
@@ -214,9 +206,7 @@ namespace RAXY.Utility.Addressable
     public class AddressableCacheContainer<T> : AddressableCacheContainer
     {
 #if UNITY_EDITOR
-        [ShowInInspector]
-        [HideReferenceObjectPicker]
-        [TableList]
+        [ShowInInspector, HideReferenceObjectPicker, TableList]
         List<CacheContainerAssetDrawer<T>> cacheDrawer
         {
             get
@@ -259,7 +249,7 @@ namespace RAXY.Utility.Addressable
             if (_cache.ContainsKey(id))
             {
                 CustomDebug.Log($"Overwriting cached asset with GUID {id}");
-                Addressables.Release(_cache[id].handle); // 🩹 fixed release
+                Addressables.Release(_cache[id].handle);
             }
 
             var newCache = new CachedAddressableAsset<T>

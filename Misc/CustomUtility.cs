@@ -1,10 +1,24 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
+using Object = UnityEngine.Object;
+
 namespace RAXY.Utility
 {
-    public static class RAXY_Utility
+    public static class CustomUtility
     {
+        /// <summary>
+        /// Replacement for UniTask.WaitUntil using Task.Delay loop.
+        /// </summary>
+        // public static async Task WaitUntil(Func<bool> condition, int checkIntervalMs = 10)
+        // {
+        //     while (!condition())
+        //     {
+        //         await Task.Delay(checkIntervalMs);
+        //     }
+        // }
+        
         public static float ClampAngle(float angle, float min, float max)
         {
             if (angle < -360f)

@@ -2,6 +2,7 @@ using UnityEngine;
 using TMPro;
 using System.Collections;
 using Sirenix.OdinInspector;
+using UnityEngine.Serialization;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -24,7 +25,8 @@ namespace RAXY.Utility.UI
         public ResizeMode resizeMode = ResizeMode.DynamicWidth;
 
         [Tooltip("If true, updates every frame (Editor/Play); otherwise, only updates on text change or manual call.")]
-        public bool useRealtimeUpdate = true;
+        [FormerlySerializedAs("useRealtimeUpdate")]
+        public bool useUpdate = true;
 
         [Tooltip("Optional minimum size (in pixels)")]
         public float minSize = 0f;
@@ -39,17 +41,17 @@ namespace RAXY.Utility.UI
         void Awake()
         {
             tmpText = GetComponent<TextMeshProUGUI>();
-            SafeUpdateSize();
+            SafeRefresh();
         }
 
         void OnEnable()
         {
 #if UNITY_EDITOR
-            if (!Application.isPlaying && useRealtimeUpdate)
+            if (!Application.isPlaying && useUpdate)
                 EditorApplication.update += EditorUpdate;
 #endif
             TMPro_EventManager.TEXT_CHANGED_EVENT.Add(OnTextChanged);
-            SafeUpdateSize();
+            SafeRefresh();
         }
 
         void OnDisable()
@@ -70,46 +72,47 @@ namespace RAXY.Utility.UI
         private void OnTextChanged(Object obj)
         {
             if (obj == tmpText)
-                SafeUpdateSize();
+                SafeRefresh();
         }
 
 #if UNITY_EDITOR
         private void EditorUpdate()
         {
-            if (!useRealtimeUpdate || tmpText == null) return;
+            if (!useUpdate || tmpText == null) 
+                return;
 
             if (_lastText != tmpText.text)
             {
                 _lastText = tmpText.text;
-                SafeUpdateSize();
+                SafeRefresh();
             }
         }
 #endif
 
-        private void SafeUpdateSize()
+        private void SafeRefresh()
         {
             if (Application.isPlaying)
             {
                 if (resizeCoroutine != null)
                     StopCoroutine(resizeCoroutine);
 
-                resizeCoroutine = StartCoroutine(DelayedUpdateSize());
+                resizeCoroutine = StartCoroutine(DelayedRefresh());
             }
             else
             {
-                UpdateSize(); // Safe in editor
+                Refresh(); // Safe in editor
             }
         }
 
-        private IEnumerator DelayedUpdateSize()
+        private IEnumerator DelayedRefresh()
         {
             yield return null; // Wait one frame
-            UpdateSize();
+            Refresh();
             resizeCoroutine = null;
         }
 
         [Button]
-        public void UpdateSize()
+        public void Refresh()
         {
             if (tmpText == null)
                 return;
