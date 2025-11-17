@@ -197,5 +197,29 @@ namespace RAXY.Utility
 
             return values;
         }
+
+        public static void DestroyAllChildren(Transform parent)
+        {
+#if UNITY_EDITOR
+            bool useImmediate = !Application.isPlaying;
+#else
+            bool useImmediate = false;
+#endif
+
+            for (int i = parent.childCount - 1; i >= 0; i--)
+            {
+                var child = parent.GetChild(i).gameObject;
+
+                if (useImmediate)
+                    Object.DestroyImmediate(child);
+                else
+                    Object.Destroy(child);
+            }
+        }
+
+        public static void DestroyAllChildren(GameObject parentObj)
+        {
+            DestroyAllChildren(parentObj.transform);
+        }
     }
 }
