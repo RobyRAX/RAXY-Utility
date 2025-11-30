@@ -18,7 +18,21 @@ namespace RAXY.Utility
         //         await Task.Delay(checkIntervalMs);
         //     }
         // }
-        
+
+        public static string GetObjectNameWithout_Clone(string name)
+        {
+            if (string.IsNullOrEmpty(name)) 
+                return "";
+
+            const string cloneSuffix = "(Clone)";
+
+            if (name.EndsWith(cloneSuffix)) 
+                name = name.Substring(0, name.Length - cloneSuffix.Length).Trim();
+
+            return name;
+        }
+
+
         public static float ClampAngle(float angle, float min, float max)
         {
             if (angle < -360f)
