@@ -107,7 +107,7 @@ namespace RAXY.Utility.Gameplay
         {
             if (mode == TargetFindMode.ByName)
             {
-                return CustomUtility.FindDeepChild(parent, targetName);
+                return CustomUtility.FindChildRecursive(parent, targetName);
             }
             else if (mode == TargetFindMode.HumanoidRig)
             {

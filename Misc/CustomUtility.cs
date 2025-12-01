@@ -43,7 +43,7 @@ namespace RAXY.Utility
             return Mathf.Clamp(angle, min, max);
         }
 
-        public static Transform FindDeepChild(Transform parent, string name)
+        public static Transform FindChildRecursive(Transform parent, string name)
         {
             if (name == string.Empty || name == null)
                 return null;
@@ -53,7 +53,7 @@ namespace RAXY.Utility
                 return result;
             foreach (Transform child in parent)
             {
-                result = FindDeepChild(child, name);
+                result = FindChildRecursive(child, name);
                 if (result != null)
                     return result;
             }
