@@ -14,6 +14,7 @@ namespace RAXY.Utility.Gameplay
         [SerializeField] bool applyOnAwake;
 
         [EnumToggleButtons]
+        [OnValueChanged("Refresh")]
         [SerializeField] ParentMode parentMode;
 
         [ShowIf("@parentMode == ParentMode.Transform")]
@@ -36,6 +37,7 @@ namespace RAXY.Utility.Gameplay
         /// <summary>
         /// Applies parenting of all entries.
         /// </summary>
+        [Button]
         public void ApplyParenting()
         {
             if (entries == null) return;
@@ -84,9 +86,14 @@ namespace RAXY.Utility.Gameplay
         {
             if (SirenixEditorGUI.ToolbarButton(EditorIcons.Refresh))
             {
-                foreach (var entry in entries)
-                    entry.SetParetMode(parentMode);
+                Refresh();
             }
+        }
+
+        void Refresh()
+        {
+            foreach (var entry in entries)
+                entry.SetParetMode(parentMode);
         }
 
         ChildParentTargetEntry NewEntry()
@@ -102,6 +109,7 @@ namespace RAXY.Utility.Gameplay
     public class ChildParentTargetEntry
     {
         [ShowIf("@parentMode == ParentMode.Transform")]
+        [PropertyOrder(-2)]
         public string parentName;
 
         [ShowIf("@parentMode == ParentMode.Animator")]
@@ -112,6 +120,8 @@ namespace RAXY.Utility.Gameplay
 #if UNITY_EDITOR
         [SerializeField]
         [OnValueChanged("OnPickerChangedHandler")]
+        [ShowIf("@parentMode == ParentMode.Transform")]
+        [PropertyOrder(-1)]
         Transform transformPicker;
 
         void OnPickerChangedHandler()
