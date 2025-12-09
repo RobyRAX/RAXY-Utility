@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 using Object = UnityEngine.Object;
+using Random = UnityEngine.Random;
 
 namespace RAXY.Utility
 {
@@ -18,6 +19,11 @@ namespace RAXY.Utility
         //         await Task.Delay(checkIntervalMs);
         //     }
         // }
+
+        public static bool CalculatePercentageRandomChance(float chance)
+        {
+            return Random.Range(0f, 100f) <= chance;
+        }
 
         public static string GetObjectNameWithout_Clone(string name)
         {

@@ -12,15 +12,16 @@ namespace RAXY.Utility.Gameplay
     public class ParentSetter : MonoBehaviour
     {
         [SerializeField] bool applyOnAwake;
+        [SerializeField] bool autoFindParentOnAwake;
 
         [EnumToggleButtons]
         [OnValueChanged("Refresh")]
         [SerializeField] ParentMode parentMode;
 
-        [ShowIf("@parentMode == ParentMode.Transform")]
+        [ShowIf("@parentMode == ParentMode.Transform && !autoFindParentOnAwake")]
         [SerializeField] Transform rootTranform;
 
-        [ShowIf("@parentMode == ParentMode.Animator")]
+        [ShowIf("@parentMode == ParentMode.Animator && !autoFindParentOnAwake")]
         [SerializeField] Animator rootAnimator;
 
         [ListDrawerSettings(OnTitleBarGUI = "DrawRefreshBtn", CustomAddFunction = "NewEntry")]
@@ -31,6 +32,12 @@ namespace RAXY.Utility.Gameplay
             if (applyOnAwake)
             {
                 ApplyParenting();
+            }
+
+            if (autoFindParentOnAwake)
+            {
+                rootTranform = transform.parent;
+                rootAnimator = rootAnimator.GetComponent<Animator>();
             }
         }
 
@@ -110,6 +117,8 @@ namespace RAXY.Utility.Gameplay
     {
         [ShowIf("@parentMode == ParentMode.Transform")]
         [PropertyOrder(-2)]
+        [HorizontalGroup("Parent")]
+        [LabelText("Parent Name | Picker")]
         public string parentName;
 
         [ShowIf("@parentMode == ParentMode.Animator")]
@@ -122,6 +131,8 @@ namespace RAXY.Utility.Gameplay
         [OnValueChanged("OnPickerChangedHandler")]
         [ShowIf("@parentMode == ParentMode.Transform")]
         [PropertyOrder(-1)]
+        [HorizontalGroup("Parent", 0.25f)]
+        [HideLabel]
         Transform transformPicker;
 
         void OnPickerChangedHandler()
