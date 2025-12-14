@@ -1,7 +1,10 @@
 using UnityEngine;
 
-public interface ITransformWithCenter
+namespace RAXY.Utility.Gameplay
 {
-    public Transform GetTransform { get; }
-    public Vector3 CenterPoint { get; }
+    public interface ITransformWithCenter
+    {
+        public Transform GetTransform { get; }
+        public Vector3 CenterPoint { get; }
+    }
 }
