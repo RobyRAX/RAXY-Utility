@@ -9,16 +9,28 @@ namespace RAXY.Utility
 {
     public static class CustomUtility
     {
-        /// <summary>
-        /// Replacement for UniTask.WaitUntil using Task.Delay loop.
-        /// </summary>
-        // public static async Task WaitUntil(Func<bool> condition, int checkIntervalMs = 10)
-        // {
-        //     while (!condition())
-        //     {
-        //         await Task.Delay(checkIntervalMs);
-        //     }
-        // }
+        public static void RemoveNullUnityKeys<TKey, TValue>(Dictionary<TKey, TValue> dict)
+            where TKey : Object
+        {
+            if (dict == null)
+                return;
+
+            var keysToRemove = new List<TKey>();
+
+            foreach (var kvp in dict)
+            {
+                if (ReferenceEquals(kvp.Key, null) || kvp.Key == null)
+                {
+                    keysToRemove.Add(kvp.Key);
+                }
+            }
+
+            foreach (var key in keysToRemove)
+            {
+                dict.Remove(key);
+            }
+        }
+
 
         public static bool CalculatePercentageRandomChance(float chance)
         {
