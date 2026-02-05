@@ -126,6 +126,7 @@ namespace RAXY.Utility
         }
 
         [TitleGroup("Test")]
+        [HorizontalGroup("Test/Test")]
         [Button("Test Switch to Local")]
         private void Test_SwitchToLocal()
         {
@@ -150,7 +151,7 @@ namespace RAXY.Utility
             }
         }
 
-        [TitleGroup("Test")]
+        [HorizontalGroup("Test/Test")]
         [Button("Test Switch to Remote")]
         private void Test_SwitchToRemote()
         {
@@ -179,6 +180,7 @@ namespace RAXY.Utility
         }
 
         [HorizontalGroup("Git Protection/Buttons")]
+        [InfoBox("Test git hook to check if manifest contains local paths", InfoMessageType.Info)]
         [Button("Test Hook", ButtonSizes.Medium)]
         private void TestGitHook()
         {
