@@ -29,7 +29,7 @@ fi
 exit 0
 ";
 
-        [MenuItem("RAXY/Git Hooks/Install Pre-Commit Hook")]
+        [MenuItem("Tools/RAXY/Git Hooks/Install Pre-Commit Hook")]
         public static void InstallPreCommitHook()
         {
             string projectRoot = Path.GetDirectoryName(Application.dataPath);
@@ -90,7 +90,7 @@ exit 0
             }
         }
 
-        [MenuItem("RAXY/Git Hooks/Uninstall Pre-Commit Hook")]
+        [MenuItem("Tools/RAXY/Git Hooks/Uninstall Pre-Commit Hook")]
         public static void UninstallPreCommitHook()
         {
             string projectRoot = Path.GetDirectoryName(Application.dataPath);
@@ -133,7 +133,7 @@ exit 0
             }
         }
 
-        [MenuItem("RAXY/Git Hooks/Test Pre-Commit Hook")]
+        [MenuItem("Tools/RAXY/Git Hooks/Test Pre-Commit Hook")]
         public static void TestPreCommitHook()
         {
             string projectRoot = Path.GetDirectoryName(Application.dataPath);
@@ -143,7 +143,7 @@ exit 0
             {
                 EditorUtility.DisplayDialog(
                     "Not Installed",
-                    "Pre-commit hook is not installed.\n\nInstall it via: RAXY -> Git Hooks -> Install Pre-Commit Hook",
+                    "Pre-commit hook is not installed.\n\nInstall it via: Tools -> RAXY -> Git Hooks -> Install Pre-Commit Hook",
                     "OK");
                 return;
             }
