@@ -59,7 +59,7 @@ namespace RAXY.Utility
             }
         }
 
-        [MenuItem("RAXY/Validate Manifest")]
+        [MenuItem("Tools/RAXY/Validate Manifest")]
         private static void ManualValidate()
         {
             SessionState.SetBool(PREF_KEY_WARNED, false);
