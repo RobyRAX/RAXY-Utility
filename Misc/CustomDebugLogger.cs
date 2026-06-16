@@ -10,19 +10,19 @@ namespace RAXY.Utility
         [Button]
         public void Log()
         {
-            CustomDebug.Log(message);
+            Debug.Log(message);
         }
 
         [Button]
         public void LogWarning()
         {
-            CustomDebug.LogWarning(message);
+            Debug.LogWarning(message);
         }
 
         [Button]
         public void LogError()
         {
-            CustomDebug.LogError(message);
+            Debug.LogError(message);
         }
     }
 }
