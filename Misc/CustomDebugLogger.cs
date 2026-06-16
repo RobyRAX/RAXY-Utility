@@ -5,20 +5,22 @@ namespace RAXY.Utility
 {
     public class CustomDebugLogger : MonoBehaviour
     {
+        public string message;
+
         [Button]
-        public void Log(string message)
+        public void Log()
         {
             CustomDebug.Log(message);
         }
 
         [Button]
-        public void LogWarning(string message)
+        public void LogWarning()
         {
             CustomDebug.LogWarning(message);
         }
 
         [Button]
-        public void LogError(string message)
+        public void LogError()
         {
             CustomDebug.LogError(message);
         }
