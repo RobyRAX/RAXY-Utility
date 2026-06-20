@@ -4,6 +4,7 @@ using System;
 using System.IO;
 using UnityEngine;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Sirenix.OdinInspector;
 
@@ -186,6 +187,110 @@ namespace RAXY.Utility
         {
             GitHookInstaller.TestPreCommitHook();
         }
+
+        [TitleGroup("Transfer")]
+        [InfoBox("Export/import package list as JSON to move config between Unity projects.", InfoMessageType.Info)]
+        [HorizontalGroup("Transfer/Buttons")]
+        [Button("Export to JSON", ButtonSizes.Medium)]
+        private void ExportToJson()
+        {
+            var data = BuildExportData();
+            string defaultName = $"{name}-manifest-switcher.json";
+            string path = EditorUtility.SaveFilePanel("Export Manifest Switcher", "", defaultName, "json");
+            if (string.IsNullOrEmpty(path))
+                return;
+
+            string json = JsonConvert.SerializeObject(data, Formatting.Indented);
+            File.WriteAllText(path, json);
+            Debug.Log($"Exported {data.packages.Count} package(s) to {path}");
+        }
+
+        [HorizontalGroup("Transfer/Buttons")]
+        [Button("Import from JSON", ButtonSizes.Medium)]
+        private void ImportFromJson()
+        {
+            string path = EditorUtility.OpenFilePanel("Import Manifest Switcher", "", "json");
+            if (string.IsNullOrEmpty(path) || !File.Exists(path))
+                return;
+
+            try
+            {
+                var data = JsonConvert.DeserializeObject<ManifestSwitcherExportData>(File.ReadAllText(path));
+                if (data == null)
+                {
+                    Debug.LogError("Import failed: JSON is empty or invalid.");
+                    return;
+                }
+
+                ApplyImportData(data);
+                EditorUtility.SetDirty(this);
+                AssetDatabase.SaveAssets();
+                Debug.Log($"Imported {packages.Count} package(s) from {path}");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Import failed: {ex.Message}");
+            }
+        }
+
+        private ManifestSwitcherExportData BuildExportData()
+        {
+            var data = new ManifestSwitcherExportData
+            {
+                manifestPath = ManifestPath,
+                packages = new List<PackageEntryExport>()
+            };
+
+            foreach (var pkg in packages)
+            {
+                data.packages.Add(new PackageEntryExport
+                {
+                    packageKey = pkg.packageKey,
+                    localPath = pkg.GetRelativeLocalPathForExport(),
+                    remoteVersion = pkg.remoteVersion
+                });
+            }
+
+            return data;
+        }
+
+        private void ApplyImportData(ManifestSwitcherExportData data)
+        {
+            if (!string.IsNullOrEmpty(data.manifestPath))
+                ManifestPath = data.manifestPath;
+
+            packages ??= new List<PackageEntry>();
+            packages.Clear();
+
+            if (data.packages == null)
+                return;
+
+            foreach (var entry in data.packages)
+            {
+                var pkg = new PackageEntry
+                {
+                    packageKey = entry.packageKey,
+                    remoteVersion = entry.remoteVersion
+                };
+                pkg.ImportLocalPath(entry.localPath);
+                packages.Add(pkg);
+            }
+        }
+    }
+
+    [Serializable]
+    public class ManifestSwitcherExportData
+    {
+        public string manifestPath = "Packages/manifest.json";
+        public List<PackageEntryExport> packages = new();
+    }
+
+    [Serializable]
+    public class PackageEntryExport
+    {
+        public string packageKey;
+        public string localPath;
+        public string remoteVersion;
     }
 
     [System.Serializable]
@@ -228,6 +333,22 @@ namespace RAXY.Utility
                 return localPath;
 
             return EditorPrefs.GetString(EDITORPREFS_PREFIX + packageKey, string.Empty);
+        }
+
+        /// <summary>
+        /// Relative local path for JSON export (asset field or EditorPrefs fallback).
+        /// </summary>
+        public string GetRelativeLocalPathForExport() => GetStoredRelativePath();
+
+        /// <summary>
+        /// Apply imported relative path to asset field and EditorPrefs.
+        /// </summary>
+        public void ImportLocalPath(string relativePath)
+        {
+            localPath = relativePath ?? string.Empty;
+
+            if (!string.IsNullOrEmpty(packageKey) && !string.IsNullOrEmpty(localPath))
+                EditorPrefs.SetString(EDITORPREFS_PREFIX + packageKey, localPath);
         }
 
         /// <summary>
