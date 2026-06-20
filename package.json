@@ -4,6 +4,9 @@
   "displayName": "RAXY Utility",
   "author": {
     "name": "RobyRAX"
+  },
+  "dependencies": {
+    "com.unity.nuget.newtonsoft-json": "3.2.2"
   }
 }
 
