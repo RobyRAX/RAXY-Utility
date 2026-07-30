@@ -9,6 +9,8 @@ namespace RAXY.Utility
 {
     public static class CustomUtility
     {
+        
+
         public static void RemoveNullUnityKeys<TKey, TValue>(Dictionary<TKey, TValue> dict)
             where TKey : Object
         {
@@ -119,6 +121,12 @@ namespace RAXY.Utility
             if (comp == null)
                 comp = obj.AddComponent<T>();
             return comp;
+        }
+
+        public static T GetOrAddComponent<T>(this Component component)
+            where T : Component
+        {
+            return component.gameObject.GetOrAddComponent<T>();
         }
 
         public static List<int> GenerateSteppedNumber(int step, int offset)
