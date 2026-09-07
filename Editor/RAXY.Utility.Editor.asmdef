@@ -1,8 +1,12 @@
 {
     "name": "RAXY.Utility.Editor",
     "rootNamespace": "RAXY.Utility.Editor",
-    "references": [],
-    "includePlatforms": [],
+    "references": [
+        "RAXY.Utility"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,
