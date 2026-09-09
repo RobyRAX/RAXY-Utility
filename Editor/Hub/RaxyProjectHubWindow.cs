@@ -7,7 +7,7 @@ namespace RAXY.Utility.Editor.Hub
     public sealed class RaxyProjectHubWindow : EditorWindow
     {
         const string MenuPath = "Tools/RAXY/Project Hub";
-        const float SidebarWidth = 160f;
+        const float SidebarWidth = 180f;
 
         List<IRaxyHubModule> _modules = new();
         int _selectedIndex;
@@ -18,7 +18,7 @@ namespace RAXY.Utility.Editor.Hub
         {
             var window = GetWindow<RaxyProjectHubWindow>();
             window.titleContent = new GUIContent("RAXY Project Hub");
-            window.minSize = new Vector2(640f, 420f);
+            window.minSize = new Vector2(720f, 460f);
             window.Show();
         }
 
@@ -66,12 +66,12 @@ namespace RAXY.Utility.Editor.Hub
         {
             using (new EditorGUILayout.VerticalScope(GUILayout.Width(SidebarWidth), GUILayout.ExpandHeight(true)))
             {
-                EditorGUILayout.LabelField("Modules", EditorStyles.boldLabel);
+                RaxyHubGui.DrawSidebarHeader("RAXY Hub");
 
-                if (GUILayout.Button("Refresh", EditorStyles.miniButton))
+                if (RaxyHubGui.SecondaryButton("Refresh Modules", SidebarWidth - 12f))
                     ReloadModules();
 
-                EditorGUILayout.Space(4f);
+                EditorGUILayout.Space(6f);
 
                 _sidebarScroll = EditorGUILayout.BeginScrollView(_sidebarScroll, GUILayout.ExpandHeight(true));
 
@@ -87,9 +87,8 @@ namespace RAXY.Utility.Editor.Hub
                     {
                         var module = _modules[i];
                         bool selected = i == _selectedIndex;
-                        var style = selected ? EditorStyles.toolbarButton : EditorStyles.miniButton;
 
-                        if (GUILayout.Toggle(selected, module.DisplayName, style) && !selected)
+                        if (RaxyHubGui.DrawNavItem(module.DisplayName, selected))
                             _selectedIndex = i;
                     }
                 }
@@ -104,13 +103,12 @@ namespace RAXY.Utility.Editor.Hub
             {
                 if (_modules.Count == 0 || _selectedIndex < 0 || _selectedIndex >= _modules.Count)
                 {
-                    EditorGUILayout.LabelField("Select a module", EditorStyles.centeredGreyMiniLabel);
+                    RaxyHubGui.DrawWindowHeader("Project Hub", "Select a module from the sidebar.");
                     return;
                 }
 
                 var module = _modules[_selectedIndex];
-                EditorGUILayout.LabelField(module.DisplayName, EditorStyles.boldLabel);
-                EditorGUILayout.Space(2f);
+                RaxyHubGui.DrawWindowHeader(module.DisplayName, $"Module id: {module.Id}");
 
                 // Modules own their own scroll areas so lists can fill remaining height.
                 module.OnGUI();
