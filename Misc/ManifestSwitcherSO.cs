@@ -12,6 +12,13 @@ using UnityEditor;
 
 namespace RAXY.Utility
 {
+    public enum PackageManifestMode
+    {
+        Local,
+        Remote,
+        Missing
+    }
+
     [CreateAssetMenu(fileName = "Manifest Switcher", menuName = "RAXY/Editor/Manifest Switcher")]
     public class ManifestSwitcherSO : ScriptableObject
     {
@@ -21,61 +28,36 @@ namespace RAXY.Utility
         [ShowInInspector, ReadOnly]
         [InfoBox("WARNING: Manifest is in LOCAL mode. Do not commit manifest.json.", InfoMessageType.Warning, "@IsLocalMode")]
         [InfoBox("Manifest is in REMOTE mode. Safe to commit.", InfoMessageType.Info, "@!IsLocalMode")]
-        private bool IsLocalMode => CheckIfLocalMode();
+        private bool IsLocalMode => IsManifestInLocalMode();
 
         [TitleGroup("Packages to Switch")]
         [TableList]
+        [OnCollectionChanged(After = nameof(BindPackageEntries))]
         public List<PackageEntry> packages = new();
 
-        [HorizontalGroup("Packages to Switch/Button")]
-        [Button]
-        private void SwitchToLocal()
+        [OnInspectorInit]
+        private void OnInspectorInit()
         {
-            if (!File.Exists(ManifestPath))
-            {
-                Debug.LogError($"Manifest not found at {ManifestPath}");
+            BindPackageEntries();
+        }
+
+        private void OnValidate()
+        {
+            BindPackageEntries();
+        }
+
+        private void BindPackageEntries()
+        {
+            if (packages == null)
                 return;
-            }
 
             foreach (var pkg in packages)
-            {
-                string localPath = pkg.GetLocalPath();
-                if (string.IsNullOrEmpty(localPath))
-                {
-                    Debug.LogWarning($"Local path not configured for {pkg.packageKey}. Please set it in the inspector.");
-                    continue;
-                }
-
-                if (!Directory.Exists(localPath))
-                {
-                    Debug.LogWarning($"Local package path does not exist: {localPath}");
-                    continue;
-                }
-
-                string newValue = "file:" + localPath.Replace("\\", "/");
-                SwitchManifest(pkg.packageKey, newValue, refresh: false);
-            }
-
-            AssetDatabase.Refresh();
-            Debug.LogWarning("WARNING: Switched to LOCAL mode. Remember to switch back to Remote before committing.");
+                pkg?.Bind(this);
         }
 
-        [HorizontalGroup("Packages to Switch/Button")]
-        [Button]
-        private void SwitchToRemote()
-        {
-            foreach (var pkg in packages)
-            {
-                SwitchManifest(pkg.packageKey, pkg.remoteVersion, refresh: false);
-            }
-            AssetDatabase.Refresh();
-            Debug.Log("Switched to REMOTE mode. Safe to commit.");
-        }
+        public string GetManifestPath() => ManifestPath;
 
-        /// <summary>
-        /// Check if manifest is currently in local mode
-        /// </summary>
-        private bool CheckIfLocalMode()
+        public bool IsManifestInLocalMode()
         {
             if (!File.Exists(ManifestPath))
                 return false;
@@ -91,15 +73,163 @@ namespace RAXY.Utility
             }
         }
 
-        /// <summary>
-        /// Switch a single package in manifest
-        /// </summary>
-        private void SwitchManifest(string packageKey, string newValue, bool refresh = true)
+        public bool TryGetDependency(string packageKey, out string value)
+        {
+            value = null;
+
+            if (string.IsNullOrEmpty(packageKey) || !File.Exists(ManifestPath))
+                return false;
+
+            try
+            {
+                string json = File.ReadAllText(ManifestPath);
+                var jObject = JObject.Parse(json);
+                var dependencies = jObject["dependencies"] as JObject;
+                if (dependencies == null || !dependencies.TryGetValue(packageKey, out var token) || token == null)
+                    return false;
+
+                value = token.Type == JTokenType.String ? token.Value<string>() : token.ToString();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Failed to read dependency '{packageKey}': {ex.Message}");
+                return false;
+            }
+        }
+
+        public PackageManifestMode GetEntryMode(PackageEntry entry)
+        {
+            if (entry == null || string.IsNullOrEmpty(entry.packageKey))
+                return PackageManifestMode.Missing;
+
+            if (!TryGetDependency(entry.packageKey, out string value) || string.IsNullOrEmpty(value))
+                return PackageManifestMode.Missing;
+
+            return value.StartsWith("file:", StringComparison.Ordinal)
+                ? PackageManifestMode.Local
+                : PackageManifestMode.Remote;
+        }
+
+        public bool SwitchEntryToLocal(PackageEntry entry, bool refresh = true)
+        {
+            if (entry == null)
+                return false;
+
+            entry.Bind(this);
+
+            if (!TryBuildLocalDependencyValue(entry, out string newValue))
+                return false;
+
+            bool ok = SwitchManifest(entry.packageKey, newValue, refresh: false);
+            if (ok && refresh)
+            {
+                AssetDatabase.Refresh();
+                Debug.LogWarning($"WARNING: Switched {entry.packageKey} to LOCAL. Remember to switch back to Remote before committing.");
+            }
+
+            return ok;
+        }
+
+        public bool SwitchEntryToRemote(PackageEntry entry, bool refresh = true)
+        {
+            if (entry == null)
+                return false;
+
+            entry.Bind(this);
+
+            if (string.IsNullOrEmpty(entry.remoteVersion))
+            {
+                Debug.LogWarning($"Remote version not configured for {entry.packageKey}.");
+                return false;
+            }
+
+            bool ok = SwitchManifest(entry.packageKey, entry.remoteVersion, refresh: false);
+            if (ok && refresh)
+            {
+                AssetDatabase.Refresh();
+                Debug.Log($"Switched {entry.packageKey} to REMOTE.");
+            }
+
+            return ok;
+        }
+
+        [HorizontalGroup("Packages to Switch/Button")]
+        [Button]
+        private void SwitchToLocal()
         {
             if (!File.Exists(ManifestPath))
             {
                 Debug.LogError($"Manifest not found at {ManifestPath}");
                 return;
+            }
+
+            BindPackageEntries();
+            bool any = false;
+
+            foreach (var pkg in packages)
+            {
+                if (SwitchEntryToLocal(pkg, refresh: false))
+                    any = true;
+            }
+
+            if (!any)
+                return;
+
+            AssetDatabase.Refresh();
+            Debug.LogWarning("WARNING: Switched to LOCAL mode. Remember to switch back to Remote before committing.");
+        }
+
+        [HorizontalGroup("Packages to Switch/Button")]
+        [Button]
+        private void SwitchToRemote()
+        {
+            BindPackageEntries();
+            bool any = false;
+
+            foreach (var pkg in packages)
+            {
+                if (SwitchEntryToRemote(pkg, refresh: false))
+                    any = true;
+            }
+
+            if (!any)
+                return;
+
+            AssetDatabase.Refresh();
+            Debug.Log("Switched to REMOTE mode. Safe to commit.");
+        }
+
+        private bool TryBuildLocalDependencyValue(PackageEntry entry, out string newValue)
+        {
+            newValue = null;
+
+            string localPath = entry.GetLocalPath();
+            if (string.IsNullOrEmpty(localPath))
+            {
+                Debug.LogWarning($"Local path not configured for {entry.packageKey}. Please set it in the inspector.");
+                return false;
+            }
+
+            if (!Directory.Exists(localPath))
+            {
+                Debug.LogWarning($"Local package path does not exist: {localPath}");
+                return false;
+            }
+
+            newValue = "file:" + localPath.Replace("\\", "/");
+            return true;
+        }
+
+        /// <summary>
+        /// Switch a single package in manifest
+        /// </summary>
+        private bool SwitchManifest(string packageKey, string newValue, bool refresh = true)
+        {
+            if (!File.Exists(ManifestPath))
+            {
+                Debug.LogError($"Manifest not found at {ManifestPath}");
+                return false;
             }
 
             string json = File.ReadAllText(ManifestPath);
@@ -109,7 +239,7 @@ namespace RAXY.Utility
             if (dependencies == null)
             {
                 Debug.LogError("Dependencies not found in manifest!");
-                return;
+                return false;
             }
 
             if (dependencies.ContainsKey(packageKey))
@@ -119,11 +249,11 @@ namespace RAXY.Utility
                 Debug.Log($"Switched {packageKey} to {newValue}");
                 if (refresh)
                     AssetDatabase.Refresh();
+                return true;
             }
-            else
-            {
-                Debug.LogError($"Package {packageKey} not found in manifest!");
-            }
+
+            Debug.LogError($"Package {packageKey} not found in manifest!");
+            return false;
         }
 
         [TitleGroup("Test")]
@@ -275,6 +405,8 @@ namespace RAXY.Utility
                 pkg.ImportLocalPath(entry.localPath);
                 packages.Add(pkg);
             }
+
+            BindPackageEntries();
         }
     }
 
@@ -293,11 +425,35 @@ namespace RAXY.Utility
         public string remoteVersion;
     }
 
-    [System.Serializable]
+    [Serializable]
     public class PackageEntry
     {
-        [TableColumnWidth(200)]
+        [NonSerialized]
+        private ManifestSwitcherSO _owner;
+
+        [TableColumnWidth(180)]
         public string packageKey;
+
+        [ShowInInspector, ReadOnly]
+        [TableColumnWidth(80)]
+        [GUIColor("@StatusColor")]
+        private string Status => GetStatusLabel();
+
+        private Color StatusColor
+        {
+            get
+            {
+                if (_owner == null)
+                    return Color.gray;
+
+                return _owner.GetEntryMode(this) switch
+                {
+                    PackageManifestMode.Local => new Color(1f, 0.75f, 0.35f),
+                    PackageManifestMode.Remote => new Color(0.45f, 0.85f, 0.55f),
+                    _ => new Color(1f, 0.45f, 0.45f)
+                };
+            }
+        }
 
         [TableColumnWidth(200)]
         [FolderPath]
@@ -308,25 +464,59 @@ namespace RAXY.Utility
         [TableColumnWidth(200)]
         public string remoteVersion;
 
+        [Button("Toggle")]
+        [TableColumnWidth(70)]
+        private void ToggleLocalRemote()
+        {
+            var owner = EnsureOwner();
+            if (owner == null)
+                return;
+
+            if (owner.GetEntryMode(this) == PackageManifestMode.Local)
+                owner.SwitchEntryToRemote(this);
+            else
+                owner.SwitchEntryToLocal(this);
+        }
+
         private const string EDITORPREFS_PREFIX = "ManifestSwitcher_LocalPath_";
 
-        /// <summary>
-        /// Get local path (resolves relative to absolute)
-        /// </summary>
+        public void Bind(ManifestSwitcherSO owner)
+        {
+            _owner = owner;
+        }
+
+        private ManifestSwitcherSO EnsureOwner()
+        {
+            if (_owner != null)
+                return _owner;
+
+            Debug.LogWarning($"Manifest Switcher owner not bound for {packageKey}. Re-select the asset.");
+            return null;
+        }
+
+        private string GetStatusLabel()
+        {
+            if (_owner == null)
+                return "-";
+
+            return _owner.GetEntryMode(this) switch
+            {
+                PackageManifestMode.Local => "LOCAL",
+                PackageManifestMode.Remote => "REMOTE",
+                _ => "MISSING"
+            };
+        }
+
         public string GetLocalPath()
         {
             string relativePath = GetStoredRelativePath();
             if (string.IsNullOrEmpty(relativePath))
                 return string.Empty;
 
-            // Resolve relative path to absolute
             string projectRoot = Path.GetDirectoryName(UnityEngine.Application.dataPath);
             return Path.GetFullPath(Path.Combine(projectRoot, relativePath));
         }
 
-        /// <summary>
-        /// Get the relative path stored in EditorPrefs
-        /// </summary>
         private string GetStoredRelativePath()
         {
             if (!string.IsNullOrEmpty(localPath))
@@ -335,14 +525,8 @@ namespace RAXY.Utility
             return EditorPrefs.GetString(EDITORPREFS_PREFIX + packageKey, string.Empty);
         }
 
-        /// <summary>
-        /// Relative local path for JSON export (asset field or EditorPrefs fallback).
-        /// </summary>
         public string GetRelativeLocalPathForExport() => GetStoredRelativePath();
 
-        /// <summary>
-        /// Apply imported relative path to asset field and EditorPrefs.
-        /// </summary>
         public void ImportLocalPath(string relativePath)
         {
             localPath = relativePath ?? string.Empty;
@@ -351,25 +535,18 @@ namespace RAXY.Utility
                 EditorPrefs.SetString(EDITORPREFS_PREFIX + packageKey, localPath);
         }
 
-        /// <summary>
-        /// Save local path to EditorPrefs as relative path (per-machine, not in git)
-        /// </summary>
         private void SaveLocalPath()
         {
             if (!string.IsNullOrEmpty(packageKey) && !string.IsNullOrEmpty(localPath))
             {
-                // Convert absolute path to relative before saving
                 string projectRoot = Path.GetDirectoryName(UnityEngine.Application.dataPath);
                 string relativePath = MakeRelativePathForStorage(localPath, projectRoot);
-                
+
                 EditorPrefs.SetString(EDITORPREFS_PREFIX + packageKey, relativePath);
                 Debug.Log($"Saved local path for {packageKey}: {relativePath}");
             }
         }
 
-        /// <summary>
-        /// Convert absolute path to relative path for storage
-        /// </summary>
         private string MakeRelativePathForStorage(string fullPath, string basePath)
         {
             try
