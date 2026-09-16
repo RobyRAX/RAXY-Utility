@@ -319,7 +319,7 @@ namespace RAXY.Utility
         }
 
         [TitleGroup("Transfer")]
-        [InfoBox("Export/import package list as JSON to move config between Unity projects.", InfoMessageType.Info)]
+        [InfoBox("Export package list as JSON to move config between Unity projects.", InfoMessageType.Info)]
         [HorizontalGroup("Transfer/Buttons")]
         [Button("Export to JSON", ButtonSizes.Medium)]
         private void ExportToJson()
@@ -335,6 +335,7 @@ namespace RAXY.Utility
             Debug.Log($"Exported {data.packages.Count} package(s) to {path}");
         }
 
+        [InfoBox("Import package list as JSON to move config between Unity projects.", InfoMessageType.Info)]
         [HorizontalGroup("Transfer/Buttons")]
         [Button("Import from JSON", ButtonSizes.Medium)]
         private void ImportFromJson()
