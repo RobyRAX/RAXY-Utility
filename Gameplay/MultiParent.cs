@@ -45,6 +45,14 @@ namespace RAXY.Utility.Gameplay
             if (index >= 0 && index < followTargets.Count)
             {
                 currentTarget = followTargets[index];
+
+#if UNITY_EDITOR
+                if (Application.isPlaying == false)
+                {
+                    transform.position = currentTarget.position + currentTarget.rotation * positionOffset;
+                    transform.rotation = currentTarget.rotation * Quaternion.Euler(rotationOffset);
+                }
+#endif
             }
             else
             {
