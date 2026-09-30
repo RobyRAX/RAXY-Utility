@@ -6,10 +6,13 @@ namespace RAXY.Utility.Gameplay
 {
     public class BillboardController : MonoBehaviour
     {
+        public bool noUpdate = false;
+
         [Tooltip("If true, updates every few seconds instead of every LateUpdate.")]
+        [HideIf("noUpdate")]
         public bool useDelay = false;
 
-        [ShowIf("@useDelay")]
+        [ShowIf("@useDelay && !noUpdate")]
         [SuffixLabel("seconds")]
         public float updateDelay = 0.1f;
 
@@ -33,7 +36,9 @@ namespace RAXY.Utility.Gameplay
                     billboardCoroutine = null;
                 }
 
-                // Start new delayed update coroutine
+                if (noUpdate)
+                    return;
+
                 billboardCoroutine = StartCoroutine(UpdateBillboardDelayed());
             }
         }
@@ -49,6 +54,9 @@ namespace RAXY.Utility.Gameplay
 
         private void LateUpdate()
         {
+            if (noUpdate)
+                return;
+
             if (!useDelay && _targetCamera != null)
             {
                 FaceCamera();
@@ -69,6 +77,7 @@ namespace RAXY.Utility.Gameplay
             }
         }
 
+        [Button]
         public void FaceCamera()
         {
             if (_targetCamera == null)
