@@ -69,7 +69,7 @@ namespace RAXY.Utility.Gameplay
             }
         }
 
-        private void FaceCamera()
+        public void FaceCamera()
         {
             if (_targetCamera == null)
                 return;
