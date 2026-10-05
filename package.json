@@ -1,6 +1,6 @@
 {
   "name": "com.raxy.utility",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "displayName": "RAXY Utility",
   "author": {
     "name": "RobyRAX"
@@ -9,4 +9,3 @@
     "com.unity.nuget.newtonsoft-json": "3.2.2"
   }
 }
-
