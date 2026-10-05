@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.2] - 2026-10-05
+
+### Added
+
+- **Gameplay**: `GameObjectDestroyer` — destroy a list of `GameObject` references via `DestroyTargets()` (Odin button, UnityEvent-friendly).
+
 ## [1.0.1] - 2026-10-05
 
 ### Added
