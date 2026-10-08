@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.3] - 2026-10-08
+
+### Changed
+
+- **Gameplay**: `GameObjectDestroyer` — optional `delay` (seconds) before each target is destroyed via `Destroy(target, delay)`.
+
 ## [1.0.2] - 2026-10-05
 
 ### Added
